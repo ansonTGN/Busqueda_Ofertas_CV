@@ -1,0 +1,19 @@
+[package]
+name = "common"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+thiserror = "1"
+async-nats = "0.42.0"
+prost = "0.12"         # porque decodificas en common, si aplica
+bytes = "1"            # útil cuando trabajas con payloads
+tokio = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+anyhow = { workspace = true }
+
+[build-dependencies]
+prost-build = "0.14.1"
+
+

@@ -1,0 +1,26 @@
+syntax = "proto3";
+package agent_messages;
+
+// Mensaje para una petición de inferencia al LLM
+message LlmRequest {
+    string system_prompt = 1;
+    string user_prompt = 2;
+}
+
+// Respuesta del LLM
+message LlmResponse {
+    string content = 1;
+}
+
+// Petición para ejecutar una herramienta
+message ToolRequest {
+    string tool_name = 1;
+    // Argumentos en formato JSON
+    string arguments_json = 2;
+}
+
+// Respuesta de una herramienta
+message ToolResponse {
+    // Resultado en formato JSON
+    string result_json = 1;
+}

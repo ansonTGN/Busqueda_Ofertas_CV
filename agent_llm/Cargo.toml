@@ -1,0 +1,11 @@
+[package]
+name = "agent_llm"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+anyhow = "1"
+async-nats = "0.34"
+bytes = "1"
+futures = "0.3"
+genai = "0.3.5"

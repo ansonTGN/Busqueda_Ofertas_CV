@@ -1,0 +1,28 @@
+[package]
+name = "agent_coordinator"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+common = { workspace = true }
+tokio = { workspace = true }
+async-nats = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+anyhow = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+dotenv = { workspace = true }
+prost = { workspace = true }
+bytes = { workspace = true }
+futures = { workspace = true }
+uuid = { workspace = true }
+base64 = { workspace = true }
+
+[lib]
+name = "agent_coordinator"
+path = "src/lib.rs"
+
+[[bin]]
+name = "agent_coordinator_bin"
+path = "src/main.rs"

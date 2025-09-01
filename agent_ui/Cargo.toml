@@ -1,0 +1,27 @@
+[package]
+name = "agent_ui"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+common = { workspace = true }
+tokio = { workspace = true }
+async-nats = { workspace = true }
+serde_json = { workspace = true }
+anyhow = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+dotenv = { workspace = true }
+uuid = { workspace = true }
+futures = { workspace = true }
+crossbeam-channel = "0.5"
+eframe = { version = "0.27", features = ["persistence"] }
+rfd = "0.14"
+
+[lib]
+name = "agent_ui"
+path = "src/lib.rs"
+
+[[bin]]
+name = "agent_ui_bin"
+path = "src/main.rs"
