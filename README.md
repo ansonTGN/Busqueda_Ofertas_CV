@@ -1,5 +1,3 @@
-A continuación se presenta una plantilla para un archivo `README.md` de un repositorio de GitHub, diseñada a partir de las mejores prácticas y ejemplos de alta calidad. Este modelo es un punto de partida sólido para documentar eficazmente un proyecto, facilitar su uso y fomentar la colaboración.
-
 ### Elementos Clave de un `README.md` Efectivo
 
 Un `README.md` bien estructurado es la puerta de entrada a cualquier proyecto. Sirve como una guía rápida y un manual de referencia, siendo a menudo el primer archivo que un visitante examina. Para asegurar que sea completo y fácil de seguir, debería incluir los siguientes apartados:
