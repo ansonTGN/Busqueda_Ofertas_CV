@@ -1,7 +1,3 @@
-Claro, aquí tienes una propuesta para el archivo `README.md` de tu proyecto, generado a partir de la estructura y el código que has proporcionado.
-
----
-
 # Sistema de Agentes Autónomos en Rust
 
 Este proyecto es una implementación de un sistema de múltiples agentes en Rust, diseñado para ser modular, escalable y robusto. Los agentes se comunican de forma asíncrona utilizando NATS y están orquestados para realizar tareas complejas que combinan el poder de los Modelos de Lenguaje Grandes (LLM) con herramientas prácticas.
