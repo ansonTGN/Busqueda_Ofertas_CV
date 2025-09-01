@@ -1,166 +1,103 @@
-### Elementos Clave de un `README.md` Efectivo
-
-Un `README.md` bien estructurado es la puerta de entrada a cualquier proyecto. Sirve como una guía rápida y un manual de referencia, siendo a menudo el primer archivo que un visitante examina. Para asegurar que sea completo y fácil de seguir, debería incluir los siguientes apartados:
-
-*   **Título del Proyecto y Descripción**: Un título claro y una descripción concisa son fundamentales para captar la atención. La descripción debe explicar qué hace el proyecto y por qué es útil.
-*   **Tabla de Contenidos (Opcional pero recomendado)**: Para `READMEs` extensos, una tabla de contenidos facilita la navegación entre las distintas secciones.
-*   **Instalación**: Instrucciones claras y paso a paso sobre cómo instalar y configurar el proyecto.
-*   **Uso**: Ejemplos de cómo utilizar el proyecto, idealmente acompañados de capturas de pantalla o GIFs.
-*   **Stack Tecnológico**: Una lista de las tecnologías, lenguajes de programación y librerías utilizadas en el proyecto.
-*   **Cómo Contribuir**: Directrices para aquellos que deseen contribuir al proyecto, incluyendo cómo reportar errores o sugerir mejoras.
-*   **Licencia**: Información sobre la licencia bajo la cual se distribuye el proyecto.
-
-Además, el uso de elementos visuales como logos, badges (insignias) y emojis puede mejorar significativamente la apariencia y legibilidad del archivo.
+Claro, aquí tienes una propuesta para el archivo `README.md` de tu proyecto, generado a partir de la estructura y el código que has proporcionado.
 
 ---
 
-# Nombre del Proyecto
+# Sistema de Agentes Autónomos en Rust
 
-<p align="center">
-  <img src="URL_DEL_LOGO" alt="Logo del Proyecto" width="200"/>
-</p>
+Este proyecto es una implementación de un sistema de múltiples agentes en Rust, diseñado para ser modular, escalable y robusto. Los agentes se comunican de forma asíncrona utilizando NATS y están orquestados para realizar tareas complejas que combinan el poder de los Modelos de Lenguaje Grandes (LLM) con herramientas prácticas.
 
-<p align="center">
-  Una breve descripción (una o dos frases) de lo que hace tu proyecto.
-  <br />
-  <a href="URL_A_LA_DEMO_O_SITIO_WEB"><strong>Ver Demo »</strong></a>
-  <br />
-  <br />
-  <a href="ENLACE_A_ISSUES">Reportar Bug</a>
-  ·
-  <a href="ENLACE_A_ISSUES">Solicitar Característica</a>
-</p>
+##  arquitectura
 
-<!-- Insignias (Badges) -->
-<p align="center">
-  <a href="URL_A_LA_LICENCIA">
-    <img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="Licencia">
-  </a>
-  <a href="URL_AL_ESTADO_DEL_BUILD">
-    <img src="https://img.shields.io/travis/com/USUARIO/REPOSITORIO.svg" alt="Estado del Build">
-  </a>
-  <a href="URL_A_LA_COBERTURA_DE_CODIGO">
-    <img src="https://img.shields.io/coveralls/github/USUARIO/REPOSITORIO" alt="Cobertura de Código">
-  </a>
-</p>
+El sistema se compone de varios agentes independientes, cada uno empaquetado como un crate de Rust dentro de un workspace de Cargo. Un lanzador central se encarga de iniciar todos los componentes.
 
----
+-   **Launcher**: El punto de entrada del sistema. Inicia cada agente en su propio hilo con un runtime de Tokio dedicado.
+-   **Agente Coordinador**: Diseñado para ser el cerebro del sistema. Escucha las peticiones de tareas y las enruta al agente apropiado (LLM o Herramientas). (Actualmente es un placeholder).
+-   **Agente LLM**: Se conecta a un modelo de lenguaje (configurable para Ollama o OpenAI) para procesar y generar texto.
+-   **Agente de Herramientas (Tool Agent)**: Proporciona una colección de herramientas que los otros agentes pueden utilizar. Las herramientas actuales incluyen:
+    -   Extracción de texto de archivos PDF.
+    -   Búsqueda y scraping web.
+    -   Escritura en el sistema de archivos.
+    -   Generación de archivos Excel (`.xlsx`).
+-   **Agente UI**: Una interfaz gráfica de usuario sencilla construida con `egui` que muestra el estado del sistema en tiempo real, recibiendo actualizaciones a través de NATS.
+-   **Common**: Un crate compartido que contiene definiciones comunes, como los mensajes Protobuf para la comunicación, los sujetos de NATS y los tipos de error.
 
-## Tabla de Contenidos
+### Flujo de Comunicación
 
-*   [Acerca del Proyecto](#acerca-del-proyecto)
-    *   [Construido Con](#construido-con)
-*   [Empezando](#empezando)
-    *   [Prerrequisitos](#prerrequisitos)
-    *   [Instalación](#instalación)
-*   [Uso](#uso)
-*   [Hoja de Ruta](#hoja-de-ruta)
-*   [Cómo Contribuir](#cómo-contribuir)
-*   [Licencia](#licencia)
-*   [Contacto](#contacto)
-*   [Agradecimientos](#agradecimientos)
+1.  El `Launcher` inicia todos los agentes.
+2.  Cada agente se suscribe a sus respectivos *subjects* en NATS.
+3.  (Flujo previsto) Una tarea se origina en la UI o una API.
+4.  El `Agente Coordinador` recibe la tarea y la descompone en pasos.
+5.  El Coordinador envía peticiones al `Agente LLM` para razonamiento o al `Agente de Herramientas` para acciones concretas.
+6.  Los agentes publican mensajes de estado en un *subject* de NATS, que son recogidos por el `Agente UI` para informar al usuario.
 
----
+## Características
 
-## Acerca del Proyecto
+-   **Arquitectura Multi-agente**: Diseño desacoplado que permite que cada agente opere de forma independiente.
+-   **Comunicación Asíncrona**: Uso de NATS para una comunicación eficiente y tolerante a fallos entre agentes.
+-   **Integración con LLMs**: Conexión nativa con modelos locales a través de Ollama (ej. Llama 3) utilizando el crate `genai`.
+-   **Herramientas Extensibles**: Un `Tool Agent` con un sistema de traits para añadir nuevas capacidades fácilmente.
+-   **Interfaz de Usuario Reactiva**: GUI simple para monitorización, construida con el framework `eframe` (`egui`).
+-   **Componentes reutilizables**: Un crate `common` asegura la consistencia en los mensajes y la gestión de errores.
 
-Aquí va una descripción más detallada de tu proyecto. Explica el problema que resuelve y por qué lo creaste. Puedes incluir las motivaciones detrás del proyecto y lo que aprendiste durante su desarrollo.
-
-[![Captura de Pantalla del Proyecto](URL_A_LA_CAPTURA_DE_PANTALLA)](URL_AL_PROYECTO)
-
-### Construido Con
-
-Esta sección debe listar los principales frameworks, librerías y herramientas que utilizaste para construir tu proyecto.
-
-*   [React.js](https://reactjs.org/)
-*   [Node.js](https://nodejs.org/)
-*   [Express.js](https://expressjs.com/)
-*   [MongoDB](https://www.mongodb.com/)
-
----
-
-## Empezando
-
-Para obtener una copia local en funcionamiento, sigue estos sencillos pasos.
+## Primeros Pasos
 
 ### Prerrequisitos
 
-Esta es una lista de las cosas que necesitas para poder usar el software y cómo instalarlas.
+-   **Rust**: Instala la última versión estable desde [rustup.rs](https://rustup.rs/).
+-   **Docker**: Necesario para ejecutar fácilmente NATS y Ollama.
 
-*   npm
-    ```sh
-    npm install npm@latest -g
+### Configuración
+
+1.  **Clona el repositorio**:
+    ```bash
+    git clone <URL_DEL_REPOSITORIO>
+    cd <NOMBRE_DEL_DIRECTORIO>
     ```
 
-### Instalación
-
-1.  Obtén una clave de API gratuita en [https://example.com](https://example.com)
-2.  Clona el repositorio
-    ```sh
-    git clone https://github.com/tu_usuario/tu_repositorio.git
+2.  **Configura el entorno**:
+    Copia el archivo de ejemplo `test.env` a `.env`. Este archivo será leído por los agentes al iniciar.
+    ```bash
+    cp test.env .env
     ```
-3.  Instala los paquetes NPM
-    ```sh
-    npm install
+    Abre el archivo `.env` y ajusta la configuración si es necesario. Por defecto, está configurado para usar Ollama con `llama3`.
+
+    ```dotenv
+    # URL del servidor NATS
+    NATS_URL="nats://localhost:4222"
+
+    # Configuración del LLM Agent
+    LLM_MODEL="llama3"
     ```
-4.  Ingresa tu clave de API en `config.js`
-    ```javascript
-    const API_KEY = 'INGRESA_TU_API_KEY';
+
+### Cómo Ejecutar
+
+1.  **Iniciar NATS Server**:
+    Ejecuta un contenedor de Docker para el servidor NATS.
+    ```bash
+    docker run --rm -p 4222:4222 -p 8222:8222 nats:latest
     ```
 
----
+2.  **Iniciar Ollama y descargar un modelo**:
+    Ejecuta el contenedor de Ollama. Si tienes una GPU NVIDIA, `--gpus=all` acelerará la inferencia.
+    ```bash
+    docker run -d --gpus=all -v ollama:/root/.ollama -p 11434:11434 --name ollama ollama/ollama
+    ```
+    Una vez que el contenedor esté en ejecución, descarga el modelo especificado en tu `.env`:
+    ```bash
+    docker exec -it ollama ollama pull llama3
+    ```
 
-## Uso
+3.  **Ejecutar el sistema de agentes**:
+    Utiliza el lanzador para compilar y ejecutar todos los agentes a la vez.
+    ```bash
+    cargo run --package launcher
+    ```    Se abrirá la ventana del Agente UI y verás los logs de todos los agentes iniciándose en la terminal.
 
-Utiliza este espacio para mostrar ejemplos útiles de cómo se puede utilizar tu proyecto. Puedes adjuntar capturas de pantalla, GIFs animados o bloques de código para ilustrar mejor los casos de uso.
+## Descripción de los Crates
 
-*Ejemplo de código:*
-
-```python
-def hola_mundo():
-  print("¡Hola, Mundo!")
-```
-
----
-
-## Hoja de Ruta
-
-Consulta los [issues abiertos](URL_A_LOS_ISSUES) para ver una lista de las características propuestas (y problemas conocidos).
-
----
-
-## Cómo Contribuir
-
-Las contribuciones son lo que hacen de la comunidad de código abierto un lugar tan increíble para aprender, inspirar y crear. Cualquier contribución que hagas será **muy apreciada**.
-
-Si tienes alguna sugerencia para mejorar esto, por favor bifurca el repositorio y crea una pull request. También puedes simplemente abrir un issue con la etiqueta "mejora". ¡No te olvides de darle una estrella al proyecto! ¡Gracias de nuevo!
-
-1.  Bifurca el Proyecto
-2.  Crea tu Rama de Característica (`git checkout -b feature/CaracteristicaIncreible`)
-3.  Confirma tus Cambios (`git commit -m 'Añade una CaracteristicaIncreible'`)
-4.  Empuja a la Rama (`git push origin feature/CaracteristicaIncreible`)
-5.  Abre una Pull Request
-
-Para fomentar la colaboración, es útil incluir directrices claras de contribución.
-
----
-
-## Licencia
-
-Distribuido bajo la Licencia MIT. Ver `LICENSE.txt` para más información.
-
----
-
-## Contacto
-
-Tu Nombre – [@tu_twitter](https://twitter.com/tu_twitter) – tu_email@ejemplo.com
-
-Enlace al Proyecto: [https://github.com/tu_usuario/tu_repositorio](https://github.com/tu_usuario/tu_repositorio)
-
----
-
-## Agradecimientos
-
-*   [Choose an Open Source License](https://choosealicense.com)
-*   [GitHub Emoji Cheat Sheet](https://www.webpagefx.com/tools/emoji-cheat-sheet)
-*   [Img Shields](https://shields.io)
+-   `launcher`: Binario principal que coordina el lanzamiento de todos los demás agentes.
+-   `common`: Crate `lib` que contiene el código compartido, como definiciones de mensajes (Protobuf), constantes de NATS y tipos de error.
+-   `agent_coordinator`: Agente responsable de recibir tareas y delegarlas a otros agentes.
+-   `agent_llm`: Agente que interactúa con un modelo de lenguaje grande para tareas de procesamiento de lenguaje natural.
+-   `agent_tool`: Agente que expone un conjunto de herramientas prácticas, como `pdf_extractor` o `web_search`.
+-   `agent_ui`: Agente que proporciona una interfaz gráfica para visualizar el estado y los resultados del sistema.
