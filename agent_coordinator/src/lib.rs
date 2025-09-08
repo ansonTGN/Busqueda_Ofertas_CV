@@ -1,37 +1,41 @@
 // agent_coordinator/src/lib.rs
 use anyhow::Result;
-use async_nats::jetstream;
+use async_nats::Client;
 use bytes::Bytes;
 use futures::StreamExt;
 use std::env;
+use tracing::{info, warn};
 
-/// Subjects (ajusta si usas otros)
-const NATS_COORDINATOR_SUBJECT: &str = "agents.coordinator";
-const _NATS_LLM_SUBJECT: &str = "agents.llm";
-const _NATS_TOOL_SUBJECT: &str = "agents.tool";
+/// Subject de coordinación (ajústalo si usas otros).
+const SUBJECT_COORDINATOR: &str = "agents.coordinator";
 
-/// Punto de entrada del coordinador.
+/// Punto de entrada del Coordinador.
 /// Se suscribe al subject de coordinación y responde "OK" a cualquier petición con reply.
-/// (Sustituye la lógica del loop por tu enrutado real si ya lo tienes definido.)
+/// Sustituye este loop por tu lógica real de orquestación cuando la tengas lista.
 pub async fn run() -> Result<()> {
     let nats_url = env::var("NATS_URL").unwrap_or_else(|_| "nats://127.0.0.1:4222".to_string());
-
-    // Conexión core a NATS
     let client = async_nats::connect(&nats_url).await?;
 
-    // JetStream (por si lo usas para otras operaciones)
-    let _jetstream = jetstream::new(client.clone());
+    info!("Coordinator conectado a NATS en {}", nats_url);
+    info!("Suscrito a '{}'", SUBJECT_COORDINATOR);
 
-    // SUSCRIPCIÓN: con el cliente core, no con jetstream::Context
-    let mut sub = client.subscribe(NATS_COORDINATOR_SUBJECT).await?;
+    listen_and_reply_ok(&client).await
+}
 
+async fn listen_and_reply_ok(nc: &Client) -> Result<()> {
+    let mut sub = nc.subscribe(SUBJECT_COORDINATOR).await?;
     while let Some(msg) = sub.next().await {
-        // Aquí podrías decodificar protobuf y enrutar a LLM/TOOLS con client.request(...)
-        // De momento, confirmamos recepción respondiendo "OK" si hay reply.
+        // Si quieres ver el payload recibido:
+        // let payload = String::from_utf8_lossy(&msg.payload);
+        // info!("Recibido en {}: {}", SUBJECT_COORDINATOR, payload);
+
         if let Some(reply) = msg.reply {
-            client.publish(reply, Bytes::from_static(b"OK")).await?;
+            nc.publish(reply, Bytes::from_static(b"OK")).await?;
+        } else {
+            // Si llega un publish sin reply, lo ignoramos (o podrías loguearlo)
+            warn!("Mensaje sin 'reply' recibido en '{}'", SUBJECT_COORDINATOR);
         }
     }
-
     Ok(())
 }
+

@@ -4,8 +4,38 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-anyhow = "1"
-async-nats = "0.34"
-bytes = "1"
+# Crate común para mensajes y subject constants
+common = { path = "../common" }
+
+# Async / runtime
+tokio = { version = "1", features = ["full"] }
 futures = "0.3"
-genai = "0.3.5"
+
+# NATS
+async-nats = "0.42"
+bytes = "1"
+
+# Protobuf
+prost = "0.12"
+
+# HTTP para hablar con Ollama
+reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+# Utilidades
+anyhow = "1"
+dotenv = "0.15"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+[lib]
+name = "agent_llm"
+path = "src/lib.rs"
+
+[[bin]]
+name = "agent_llm_bin"
+path = "src/main.rs"
+
+
+

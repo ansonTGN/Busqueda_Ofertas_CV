@@ -3,11 +3,12 @@ use anyhow::Result;
 #[tokio::main]
 async fn main() -> Result<()> {
     dotenv::dotenv().ok();
-    tracing_subscriber::fmt::init();
-    
+    tracing_subscriber::fmt()
+        .with_env_filter("info")
+        .init();
+
     if let Err(e) = agent_llm::run().await {
-        tracing::error!("El Agente LLM ha terminado con un error: {:?}", e);
+        eprintln!("agent_llm terminó con error: {e}");
     }
-    
     Ok(())
 }

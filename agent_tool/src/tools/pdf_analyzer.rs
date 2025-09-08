@@ -10,3 +10,4 @@ pub async fn extract_pdf_text(path: &Path) -> Result<String> {
         .map_err(|e| anyhow::anyhow!("JoinError: {e}"))??;
     Ok(text)
 }
+

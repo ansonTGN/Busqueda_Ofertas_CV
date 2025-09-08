@@ -9,7 +9,8 @@ use tokio::runtime::Builder;
 
 // ------------ Config por defecto (ajusta si prefieres pasarlos por parámetro) ------------
 const DEFAULT_NATS_URL: &str = "nats://127.0.0.1:4222";
-const DEFAULT_STATUS_SUBJECT: &str = "agents.status";
+const DEFAULT_STATUS_SUBJECT: &str = "agent.ui.status"; // ¡Ojo! te suscribes luego a "agent.ui.status.<task_id>"
+
 
 // ------------------------------- UI APP -----------------------------------
 
