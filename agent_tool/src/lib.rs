@@ -1,80 +1,124 @@
 use anyhow::Result;
-use async_nats::Client;
+use async_nats::jetstream;
 use bytes::Bytes;
-use common::messaging::{
-    messages::{ToolRequest, ToolResponse},
-    NATS_TOOL_SUBJECT,
-};
 use futures::StreamExt;
-use prost::Message as ProstMessage;
-use serde_json::Value;
-use std::{collections::HashMap, env, sync::Arc};
-use tokio::sync::Mutex;
-use tools::{
-    excel_writer::ExcelWriterTool, file_system::FileSystemTool, pdf_parser::PdfParserTool,
-    web_scraper::WebSearchTool, Tool,
-};
-use tracing::{info, warn};
+use std::collections::HashMap;
+use std::env;
+use std::path::Path;
 
-pub mod tools;
+mod tools;
+use crate::tools::pdf_analyzer::extract_pdf_text;
+
+const NATS_TOOL_SUBJECT: &str = "agents.tool";
 
 pub async fn run() -> Result<()> {
-    // Registro de herramientas
-    let mut registry: HashMap<String, Arc<dyn Tool>> = HashMap::new();
-    registry.insert("pdf_extractor".into(), Arc::new(PdfParserTool));
-    registry.insert("web_search".into(), Arc::new(WebSearchTool));
-    registry.insert("file_writer".into(), Arc::new(FileSystemTool));
-    registry.insert("excel_writer".into(), Arc::new(ExcelWriterTool));
-    let registry = Arc::new(Mutex::new(registry));
-
-    // Conexión NATS (cliente "core")
     let nats_url = env::var("NATS_URL").unwrap_or_else(|_| "nats://127.0.0.1:4222".to_string());
     let client = async_nats::connect(&nats_url).await?;
-    info!("agent_tool conectado a NATS: {nats_url}");
-    info!("Suscribiendo a '{}'", NATS_TOOL_SUBJECT);
+    let _js = jetstream::new(client.clone());
 
-    // Suscripción al subject canónico del proyecto
-    let mut sub = client.subscribe(NATS_TOOL_SUBJECT).await?;
+    // ---------------------------
+    // Registry para `toolkit`
+    // ---------------------------
+    #[cfg(feature = "toolkit")]
+    let registry = {
+        use tools::{
+            excel_writer::ExcelWriterTool, file_system::FileSystemTool, pdf_parser::PdfParserTool,
+            web_scraper::WebSearchTool, Tool,
+        };
+        let mut map: HashMap<&'static str, Box<dyn Tool>> = HashMap::new();
+        map.insert("file_writer", Box::new(FileSystemTool));
+        map.insert("excel_writer", Box::new(ExcelWriterTool));
+        map.insert("pdf_extractor", Box::new(PdfParserTool));
+        map.insert("web_search", Box::new(WebSearchTool));
+        map
+    };
 
-    while let Some(msg) = sub.next().await {
+    let mut subscription = client.subscribe(NATS_TOOL_SUBJECT).await?;
+    while let Some(msg) = subscription.next().await {
         let reply = msg.reply.clone();
-        // Decodifica Protobuf de ToolRequest
-        let req = match ToolRequest::decode(msg.payload.as_ref()) {
-            Ok(r) => r,
-            Err(e) => {
-                warn!("ToolRequest malformado: {e}");
-                if let Some(r) = reply {
-                    let resp = ToolResponse {
-                        result_json: serde_json::json!({"error": format!("bad request: {e}")}).to_string(),
-                    };
-                    let _ = client.publish(r, Bytes::from(resp.encode_to_vec())).await;
+
+        // 1) Intenta parsear como JSON {"cmd": "...", ...}
+        let parsed_json: Result<serde_json::Value, _> = serde_json::from_slice(&msg.payload);
+        let response = if let Ok(mut val) = parsed_json {
+            // Copiamos 'cmd' a un String para no mantener un préstamo de 'val'
+            let cmd_opt = val
+                .get("cmd")
+                .and_then(|v| v.as_str())
+                .map(|s| s.to_string());
+
+            match cmd_opt.as_deref() {
+                // ---- Camino básico: analizar PDF por ruta ----
+                Some("analyze_pdf") | Some("pdf_to_text") => {
+                    let path = val.get("path").and_then(|p| p.as_str()).map(|s| s.to_string());
+                    match path {
+                        Some(p) => match extract_pdf_text(Path::new(&p)).await {
+                            Ok(t) => t,
+                            Err(e) => format!("ERROR extracting PDF: {e}"),
+                        },
+                        None => "ERROR: falta 'path' en la petición".to_string(),
+                    }
                 }
-                continue;
+
+                // ---- Rutas toolkit: pasan args JSON a la herramienta correspondiente ----
+                #[cfg(feature = "toolkit")]
+                Some(cmd) if ["file_writer", "excel_writer", "pdf_extractor", "web_search"]
+                    .contains(&cmd) =>
+                {
+                    use serde_json::json;
+
+                    if let Some(obj) = val.as_object_mut() {
+                        obj.remove("cmd"); // ya tenemos 'cmd' copiado
+                        let args_json = json!(obj).to_string();
+
+                        if let Some(tool) = registry.get(cmd) {
+                            match tool.execute(&args_json).await {
+                                Ok(value) => value.to_string(),
+                                Err(e) => format!("ERROR executing tool '{cmd}': {e}"),
+                            }
+                        } else {
+                            format!("ERROR: herramienta '{cmd}' no registrada")
+                        }
+                    } else {
+                        format!(
+                            "ERROR: el payload debe ser un objeto JSON con campos para '{cmd}'"
+                        )
+                    }
+                }
+
+                // ---- Comando desconocido ----
+                Some(other) => format!("ERROR: comando no reconocido '{other}'"),
+
+                // Sin campo "cmd": fallback
+                None => {
+                    // 2) Fallback: payload solo con ruta .pdf en texto plano
+                    match std::str::from_utf8(&msg.payload) {
+                        Ok(p) if p.trim_end().ends_with(".pdf") => {
+                            match extract_pdf_text(Path::new(p.trim())).await {
+                                Ok(t) => t,
+                                Err(e) => format!("ERROR extracting PDF: {e}"),
+                            }
+                        }
+                        _ => "ERROR: payload sin 'cmd' no es JSON válido ni ruta .pdf".to_string(),
+                    }
+                }
+            }
+        } else {
+            // 3) Fallback total: payload no es JSON -> prueba como ruta .pdf
+            match std::str::from_utf8(&msg.payload) {
+                Ok(p) if p.trim_end().ends_with(".pdf") => {
+                    match extract_pdf_text(Path::new(p.trim())).await {
+                        Ok(t) => t,
+                        Err(e) => format!("ERROR extracting PDF: {e}"),
+                    }
+                }
+                _ => "ERROR: payload no es JSON válido ni ruta .pdf".to_string(),
             }
         };
 
-        let tool_name = req.tool_name;
-        let args_json = req.arguments_json;
-
-        // Ejecuta la herramienta
-        let out: Value = {
-            let map = registry.lock().await;
-            match map.get(&tool_name) {
-                Some(tool) => match tool.execute(&args_json).await {
-                    Ok(v) => v,
-                    Err(e) => serde_json::json!({"error": format!("tool '{tool_name}' failed: {e}")}),
-                },
-                None => serde_json::json!({"error": format!("unknown tool '{tool_name}'")}),
-            }
-        };
-
-        // Responde por reply inbox si existe
         if let Some(r) = reply {
-            let resp = ToolResponse { result_json: out.to_string() };
-            let _ = client.publish(r, Bytes::from(resp.encode_to_vec())).await;
+            let _ = client.publish(r, Bytes::from(response.into_bytes())).await;
         }
     }
-
     Ok(())
 }
 

@@ -1,38 +1,39 @@
 # Sistema de Agentes Autónomos en Rust
 
-Framework multi-agente **modular, escalable y robusto** para orquestar LLMs y herramientas prácticas sobre un bus NATS.
+Framework modular y escalable para orquestar **múltiples agentes** en Rust. Los agentes se comunican por **NATS** (pub/sub) y se coordinan para ejecutar pipelines que combinan **LLMs** con **herramientas** (PDF, scraping, Excel, etc.).
 
-[![Rust](https://img.shields.io/badge/Rust-2021-orange)]()
-[![NATS](https://img.shields.io/badge/NATS-0.42-blueviolet)]()
-[![genai](https://img.shields.io/badge/genai-0.3.5-informational)]()
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)]()
+<p align="center">
+  <a href="https://www.rust-lang.org/"><img alt="Rust" src="https://img.shields.io/badge/Rust-1.78%2B-orange"></a>
+  <a href="https://nats.io/"><img alt="NATS" src="https://img.shields.io/badge/NATS-pub/sub-blueviolet"></a>
+  <a href="./LICENSE"><img alt="MIT" src="https://img.shields.io/badge/license-MIT-blue"></a>
+</p>
 
 ## Arquitectura
 
-- **Coordinator**: Descompone tareas, llama al **LLM** y al **Tool Agent**, y publica estados para la **UI**.  
-- **LLM Agent**: Abstracción de modelos (vía `genai`).  
-- **Tool Agent**: Registro de herramientas (PDF, scraping, filesystem, Excel).  
-- **UI Agent (egui)**: Monitoriza `agent.ui.status.<task_id>` y lanza tareas.
+- **Launcher** — arranca todos los agentes.
+- **Coordinator** — enruta tareas (placeholder funcional).
+- **LLM Agent** — integra LLM (genai).
+- **Tool Agent** — PDF, scraping, escritura de ficheros, Excel.
+- **UI Agent** — GUI `eframe/egui` para estado en tiempo real.
+- **Common** — tipos y utilidades (errores, messaging, proto).
 
-**Subjects NATS (core request/reply + pub):**
-- `agents.coordinator` (entrada de tareas)
-- `agents.llm` (request/reply Protobuf `LlmRequest`→`LlmResponse`)
-- `agents.tool` (request/reply Protobuf `ToolRequest`→`ToolResponse`)
-- `agent.ui.status.<task_id>` (publicación de estado)
+**Subjects NATS:** `agents.coordinator`, `agents.llm`, `agents.tool`, `agents.status`.
 
 ## Requisitos
 
-- Rust estable (`rustup.rs`)
-- Docker (para NATS y Ollama)
+- Rust 1.78+
+- Docker
+- NATS server
 
-## Arranque rápido
+## Variables de entorno
+
+| Variable   | Ejemplo                 |
+|-----------|-------------------------|
+| NATS_URL  | nats://127.0.0.1:4222  |
+| LLM_MODEL | llama3.1:8b            |
+
+## Quickstart
 
 ```bash
-# 1) Infra (NATS + Ollama)
-docker compose up -d
-# 2) (Opcional) Descargar modelo en Ollama
-make pull-model
-# 3) Variables de entorno
-cp test.env .env
-# 4) Ejecutar todo el sistema
-cargo run -p launcher --bin launcher
+docker run --rm -p 4222:4222 -p 8222:8222 nats:latest
+cargo run --package launcher

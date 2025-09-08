@@ -3,30 +3,33 @@ name = "agent_tool"
 version = "0.1.0"
 edition = "2021"
 
+[features]
+# Por defecto modo básico (solo analyze_pdf)
+default = ["basic"]
+basic = []
+# Activa el conjunto de herramientas extensibles (excel, web, file_writer, pdf_parser + trait Tool)
+toolkit = []
+
 [dependencies]
+common = { workspace = true }
 tokio = { workspace = true }
+async-nats = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
 anyhow = { workspace = true }
 tracing = { workspace = true }
 tracing-subscriber = { workspace = true }
 dotenv = { workspace = true }
-prost = { workspace = true }
-prost-types = { workspace = true }
-
-
-async-nats = { workspace = true }
-futures = { workspace = true }
 bytes = { workspace = true }
+futures = { workspace = true }
 async-trait = { workspace = true }
-serde = { workspace = true }
-serde_json = { workspace = true }
 base64 = { workspace = true }
 
-reqwest = { workspace = true }
-scraper = { workspace = true }
-pdf-extract = { workspace = true }
-rust_xlsxwriter = { workspace = true }
-
-common = { workspace = true }
+# Herramientas
+pdf-extract = "0.9.0"
+reqwest = "0.12"
+scraper = "0.24"
+rust_xlsxwriter = "0.90.0"
 
 [lib]
 name = "agent_tool"
@@ -35,3 +38,4 @@ path = "src/lib.rs"
 [[bin]]
 name = "agent_tool_bin"
 path = "src/main.rs"
+

@@ -15,9 +15,12 @@ tokio = { version = "1", features = ["full"] }
 async-trait = "0.1"
 futures = "0.3"
 
-# Comunicación
-async-nats = "0.34"
+# Mensajería
+async-nats = "0.42"
+
+# Protobuf
 prost = "0.12"
+prost-build = "0.14.1"
 
 # Serialización y Datos
 serde = { version = "1", features = ["derive"] }
@@ -30,10 +33,11 @@ uuid = { version = "1", features = ["v4"] }
 anyhow = "1"
 thiserror = "1"
 
-# Logging y Configuración
+# Logging y Config
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 dotenv = "0.15"
 
 # Crate común del proyecto
 common = { path = "./common" }
+

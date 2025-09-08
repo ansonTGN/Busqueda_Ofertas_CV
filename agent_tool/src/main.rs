@@ -8,6 +8,5 @@ async fn main() -> Result<()> {
     if let Err(e) = agent_tool::run().await {
         tracing::error!("El Agente de Herramientas ha terminado con un error: {:?}", e);
     }
-    
     Ok(())
 }
